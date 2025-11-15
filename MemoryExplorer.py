@@ -14,11 +14,8 @@ import struct
 import os
 import time
 
-# Load Stealth Engine (relative to script directory)
-script_dir = os.path.dirname(os.path.abspath(__file__))
-stealth_dll_path = os.path.join(script_dir, "StealthEngine", "StealthEngine.dll")
-
-stealth = ctypes.CDLL(stealth_dll_path)
+# Load Stealth Engine
+stealth = ctypes.CDLL(r"D:\ROBLOX_EXECUTOR\StealthEngine\bin\StealthEngine.dll")
 stealth.CreateEngine.restype = c_void_p
 stealth.AttachToProcess.argtypes = [c_void_p, c_char_p]
 stealth.AttachToProcess.restype = c_bool
@@ -43,12 +40,13 @@ class MemoryExplorer:
         self.process_name = "RobloxPlayerBeta.exe"
         self.base_address = 0x7FF6F39B0000
         self.available_processes = []
-        self.ghidra_project = os.path.join(script_dir, "GhidraProjects")
-        self.export_dir = os.path.join(script_dir, "Exports")
+        self.ghidra_project = r"D:\ROBLOX_EXECUTOR\GhidraProjects"
+        self.export_dir = r"D:\ROBLOX_EXECUTOR\Exports"
         self.current_pid = None
         self.memory_snapshots = []
         
         # Create export directories
+        import os
         os.makedirs(self.export_dir, exist_ok=True)
         os.makedirs(os.path.join(self.export_dir, "memory_dumps"), exist_ok=True)
         os.makedirs(os.path.join(self.export_dir, "ghidra_ready"), exist_ok=True)
@@ -756,8 +754,8 @@ class MemoryExplorer:
                                 self.log(f"Base Address: 0x{self.base_address:X}", "INFO")
                                 self.log(f"Image Size: {modinfo.SizeOfImage / (1024*1024):.2f} MB", "INFO")
                                 
-                                # Auto-detect writable memory regions (Unity heap)
-                                self.log("Detecting writable memory regions...", "INFO")
+                                # UNIVERSAL MEMORY SCANNER - Works with ALL games!
+                                self.log("🔍 Scanning ALL readable/writable memory regions...", "INFO")
                                 
                                 class MEMORY_BASIC_INFORMATION(ctypes.Structure):
                                     _fields_ = [
@@ -772,40 +770,67 @@ class MemoryExplorer:
                                 
                                 mbi = MEMORY_BASIC_INFORMATION()
                                 address = 0
-                                largest_region = None
-                                largest_size = 0
+                                
+                                # Collect ALL writable regions (not just the biggest)
+                                writable_regions = []
+                                total_writable = 0
                                 
                                 MEM_COMMIT = 0x1000
+                                MEM_PRIVATE = 0x20000
                                 PAGE_READWRITE = 0x04
                                 PAGE_WRITECOPY = 0x08
                                 PAGE_EXECUTE_READWRITE = 0x40
+                                PAGE_GUARD = 0x100
+                                PAGE_NOACCESS = 0x01
                                 
-                                # Scan for large writable regions (Unity heap)
+                                # Scan ENTIRE address space for writable regions
+                                self.log("Enumerating memory regions (this may take a moment)...", "INFO")
                                 while address < 0x7FFFFFFFFFFF:
                                     if kernel32.VirtualQueryEx(hProcess, ctypes.c_void_p(address), 
                                                               ctypes.byref(mbi), ctypes.sizeof(mbi)):
-                                        if mbi.State == MEM_COMMIT and mbi.RegionSize > largest_size:
-                                            if mbi.Protect in [PAGE_READWRITE, PAGE_WRITECOPY, PAGE_EXECUTE_READWRITE]:
-                                                if mbi.RegionSize > 50 * 1024 * 1024:  # > 50MB = likely Unity heap
-                                                    largest_region = mbi.BaseAddress
-                                                    largest_size = mbi.RegionSize
+                                        # Check if region is committed and writable
+                                        if mbi.State == MEM_COMMIT:
+                                            is_writable = mbi.Protect in [PAGE_READWRITE, PAGE_WRITECOPY, PAGE_EXECUTE_READWRITE]
+                                            has_guard = (mbi.Protect & PAGE_GUARD) != 0
+                                            is_accessible = mbi.Protect != PAGE_NOACCESS
+                                            
+                                            if is_writable and not has_guard and is_accessible:
+                                                # Found writable region - add to list
+                                                region_mb = mbi.RegionSize / (1024 * 1024)
+                                                writable_regions.append({
+                                                    'address': mbi.BaseAddress,
+                                                    'size': mbi.RegionSize,
+                                                    'size_mb': region_mb,
+                                                    'type': 'PRIVATE' if mbi.Type == MEM_PRIVATE else 'MAPPED'
+                                                })
+                                                total_writable += mbi.RegionSize
+                                        
                                         address += mbi.RegionSize
                                     else:
-                                        address += 0x1000
+                                        address += 0x10000  # Skip 64KB on error
                                     
-                                    # Stop after checking first 2TB
-                                    if address > 0x20000000000:
+                                    # Stop after checking first 128TB (more than enough)
+                                    if address > 0x800000000000:
                                         break
                                 
-                                if largest_region:
-                                    scan_start = largest_region
-                                    scan_size = int(largest_size / (1024 * 1024))
-                                    self.log(f"✅ Found Unity heap: 0x{scan_start:X} ({scan_size} MB)", "SUCCESS")
+                                # Log findings
+                                total_mb = total_writable / (1024 * 1024)
+                                self.log(f"✅ Found {len(writable_regions)} writable regions ({total_mb:.1f} MB total)", "SUCCESS")
+                                
+                                # Strategy: Set default to scan ALL writable memory
+                                if writable_regions:
+                                    # Start from lowest address
+                                    scan_start = writable_regions[0]['address']
+                                    # Scan up to reasonable limit (2GB total to avoid UI freeze)
+                                    scan_size = min(int(total_mb), 2048)
+                                    
+                                    self.log(f"📍 Scan range: 0x{scan_start:X} → {scan_size} MB across all regions", "INFO")
+                                    self.log(f"💡 TIP: Covers ALL game memory - Unity, Unreal, native, any engine!", "SUCCESS")
                                 else:
-                                    # Fallback to scanning from low memory
+                                    # Ultimate fallback - scan from 0
                                     scan_start = 0x00000000
-                                    scan_size = 2000
-                                    self.log("⚠️ Using default scan range", "WARNING")
+                                    scan_size = 2048
+                                    self.log("⚠️ Using fallback: scanning from 0x0", "WARNING")
                                 
                                 self.start_entry.delete(0, tk.END)
                                 self.start_entry.insert(0, f"0x{scan_start:X}")
