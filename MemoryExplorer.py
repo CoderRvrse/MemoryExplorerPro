@@ -775,62 +775,164 @@ class MemoryExplorer:
                                 writable_regions = []
                                 total_writable = 0
                                 
+                                # Cheat Engine memory constants
                                 MEM_COMMIT = 0x1000
+                                MEM_RESERVE = 0x2000
+                                MEM_FREE = 0x10000
                                 MEM_PRIVATE = 0x20000
+                                MEM_MAPPED = 0x40000
+                                MEM_IMAGE = 0x1000000  # Executable modules (game code/data)
+                                
+                                PAGE_NOACCESS = 0x01
+                                PAGE_READONLY = 0x02
                                 PAGE_READWRITE = 0x04
                                 PAGE_WRITECOPY = 0x08
+                                PAGE_EXECUTE = 0x10
+                                PAGE_EXECUTE_READ = 0x20
                                 PAGE_EXECUTE_READWRITE = 0x40
+                                PAGE_EXECUTE_WRITECOPY = 0x80
                                 PAGE_GUARD = 0x100
-                                PAGE_NOACCESS = 0x01
+                                PAGE_NOCACHE = 0x200
                                 
-                                # Scan ENTIRE address space for writable regions
-                                self.log("Enumerating memory regions (this may take a moment)...", "INFO")
+                                # Advanced memory scanning algorithm
+                                self.log("🎯 Using professional-grade region validation...", "INFO")
+                                
+                                PAGE_WRITECOMBINE = 0x400
+                                
+                                # CE Strategy: Scan different memory types in priority order
+                                mem_types = {
+                                    'PRIVATE': [],   # Heap allocations (game data) - HIGH PRIORITY
+                                    'IMAGE': [],     # Executable code sections with data - MEDIUM PRIORITY  
+                                    'MAPPED': []     # Memory-mapped files - LOW PRIORITY
+                                }
+                                
+                                # Memory type filters - scan all by default
+                                Scan_MEM_PRIVATE = True
+                                Scan_MEM_IMAGE = True
+                                Scan_MEM_MAPPED = True
+                                Skip_PAGE_NOCACHE = True
+                                Skip_PAGE_WRITECOMBINE = True
+                                
+                                scanned_count = 0
                                 while address < 0x7FFFFFFFFFFF:
                                     if kernel32.VirtualQueryEx(hProcess, ctypes.c_void_p(address), 
                                                               ctypes.byref(mbi), ctypes.sizeof(mbi)):
-                                        # Check if region is committed and writable
-                                        if mbi.State == MEM_COMMIT:
-                                            is_writable = mbi.Protect in [PAGE_READWRITE, PAGE_WRITECOPY, PAGE_EXECUTE_READWRITE]
-                                            has_guard = (mbi.Protect & PAGE_GUARD) != 0
-                                            is_accessible = mbi.Protect != PAGE_NOACCESS
+                                        # Region validation logic
+                                        valid = (mbi.State == MEM_COMMIT)
+                                        if not valid:
+                                            address += mbi.RegionSize
+                                            continue
+                                        
+                                        # Check protection flags
+                                        valid = valid and ((mbi.Protect & PAGE_GUARD) == 0)
+                                        valid = valid and ((mbi.Protect & PAGE_NOACCESS) == 0)
+                                        valid = valid and (not (not Scan_MEM_PRIVATE and (mbi.Type == MEM_PRIVATE)))
+                                        valid = valid and (not (not Scan_MEM_IMAGE and (mbi.Type == MEM_IMAGE)))
+                                        valid = valid and (not (not Scan_MEM_MAPPED and (mbi.Type == MEM_MAPPED)))
+                                        valid = valid and (not (Skip_PAGE_NOCACHE and ((mbi.Protect & PAGE_NOCACHE) > 0)))
+                                        valid = valid and (not (Skip_PAGE_WRITECOMBINE and ((mbi.Protect & PAGE_WRITECOMBINE) > 0)))
+                                        
+                                        if valid:
+                                            # Detect writable/executable/copyonwrite regions
+                                            isWritable = ((mbi.Protect & PAGE_READWRITE) > 0) or \
+                                                        ((mbi.Protect & PAGE_WRITECOPY) > 0) or \
+                                                        ((mbi.Protect & PAGE_EXECUTE_READWRITE) > 0) or \
+                                                        ((mbi.Protect & PAGE_EXECUTE_WRITECOPY) > 0)
                                             
-                                            if is_writable and not has_guard and is_accessible:
-                                                # Found writable region - add to list
+                                            isExecutable = ((mbi.Protect & PAGE_EXECUTE) > 0) or \
+                                                          ((mbi.Protect & PAGE_EXECUTE_READ) > 0) or \
+                                                          ((mbi.Protect & PAGE_EXECUTE_READWRITE) > 0) or \
+                                                          ((mbi.Protect & PAGE_EXECUTE_WRITECOPY) > 0)
+                                            
+                                            isCopyOnWrite = ((mbi.Protect & PAGE_WRITECOPY) > 0) or \
+                                                           ((mbi.Protect & PAGE_EXECUTE_WRITECOPY) > 0)
+                                            
+                                            # For game hacking, we want writable regions (CE default)
+                                            if isWritable:
                                                 region_mb = mbi.RegionSize / (1024 * 1024)
-                                                writable_regions.append({
-                                                    'address': mbi.BaseAddress,
-                                                    'size': mbi.RegionSize,
-                                                    'size_mb': region_mb,
-                                                    'type': 'PRIVATE' if mbi.Type == MEM_PRIVATE else 'MAPPED'
-                                                })
-                                                total_writable += mbi.RegionSize
+                                                
+                                                if mbi.Type == MEM_PRIVATE:
+                                                    # BEST: Private heap (player stats, inventory, money)
+                                                    mem_types['PRIVATE'].append({
+                                                        'address': mbi.BaseAddress,
+                                                        'size': mbi.RegionSize,
+                                                        'size_mb': region_mb,
+                                                        'protect': mbi.Protect,
+                                                        'writable': isWritable,
+                                                        'executable': isExecutable,
+                                                        'copyonwrite': isCopyOnWrite
+                                                    })
+                                                    total_writable += mbi.RegionSize
+                                                    
+                                                elif mbi.Type == MEM_IMAGE:
+                                                    # GOOD: Game executable sections (global variables, statics)
+                                                    mem_types['IMAGE'].append({
+                                                        'address': mbi.BaseAddress,
+                                                        'size': mbi.RegionSize,
+                                                        'size_mb': region_mb,
+                                                        'protect': mbi.Protect,
+                                                        'writable': isWritable,
+                                                        'executable': isExecutable,
+                                                        'copyonwrite': isCopyOnWrite
+                                                    })
+                                                    total_writable += mbi.RegionSize
+                                                    
+                                                elif mbi.Type == MEM_MAPPED:
+                                                    # OK: Memory-mapped files (less common for game data)
+                                                    mem_types['MAPPED'].append({
+                                                        'address': mbi.BaseAddress,
+                                                        'size': mbi.RegionSize,
+                                                        'size_mb': region_mb,
+                                                        'protect': mbi.Protect,
+                                                        'writable': isWritable,
+                                                        'executable': isExecutable,
+                                                        'copyonwrite': isCopyOnWrite
+                                                    })
+                                                    total_writable += mbi.RegionSize
                                         
                                         address += mbi.RegionSize
+                                        scanned_count += 1
                                     else:
                                         address += 0x10000  # Skip 64KB on error
                                     
-                                    # Stop after checking first 128TB (more than enough)
+                                    # Progress update every 1000 regions
+                                    if scanned_count % 1000 == 0 and scanned_count > 0:
+                                        self.log(f"Scanned {scanned_count} regions...", "INFO")
+                                    
+                                    # Stop after checking first 128TB
                                     if address > 0x800000000000:
                                         break
                                 
-                                # Log findings
+                                # Cheat Engine's region priority analysis
                                 total_mb = total_writable / (1024 * 1024)
-                                self.log(f"✅ Found {len(writable_regions)} writable regions ({total_mb:.1f} MB total)", "SUCCESS")
+                                private_count = len(mem_types['PRIVATE'])
+                                image_count = len(mem_types['IMAGE'])
+                                mapped_count = len(mem_types['MAPPED'])
+                                total_regions = private_count + image_count + mapped_count
                                 
-                                # Strategy: Set default to scan ALL writable memory
+                                self.log(f"✅ Cheat Engine Detection: {total_regions} scannable regions", "SUCCESS")
+                                self.log(f"   🥇 PRIVATE (Heap): {private_count} regions - BEST for game values", "INFO")
+                                self.log(f"   🥈 IMAGE (Code): {image_count} regions - Good for globals", "INFO")
+                                self.log(f"   🥉 MAPPED (Files): {mapped_count} regions", "INFO")
+                                self.log(f"   📊 Total writable: {total_mb:.1f} MB", "INFO")
+                                
+                                # CE Strategy: Build scan list in priority order
+                                writable_regions = []
+                                writable_regions.extend(mem_types['PRIVATE'])   # Scan heap FIRST
+                                writable_regions.extend(mem_types['IMAGE'])     # Then executable sections
+                                writable_regions.extend(mem_types['MAPPED'])    # Finally mapped files
+                                
                                 if writable_regions:
-                                    # Start from lowest address
+                                    # CE default: Start from first region, scan up to 2GB
                                     scan_start = writable_regions[0]['address']
-                                    # Scan up to reasonable limit (2GB total to avoid UI freeze)
                                     scan_size = min(int(total_mb), 2048)
                                     
-                                    self.log(f"📍 Scan range: 0x{scan_start:X} → {scan_size} MB across all regions", "INFO")
-                                    self.log(f"💡 TIP: Covers ALL game memory - Unity, Unreal, native, any engine!", "SUCCESS")
+                                    self.log(f"📍 Scan Strategy: 0x{scan_start:X} → {scan_size} MB", "INFO")
+                                    self.log(f"💡 CE Algorithm: Prioritizes heap → code → mapped memory", "SUCCESS")
                                 else:
-                                    # Ultimate fallback - scan from 0
                                     scan_start = 0x00000000
                                     scan_size = 2048
-                                    self.log("⚠️ Using fallback: scanning from 0x0", "WARNING")
+                                    self.log("⚠️ No writable regions found - using fallback", "WARNING")
                                 
                                 self.start_entry.delete(0, tk.END)
                                 self.start_entry.insert(0, f"0x{scan_start:X}")
