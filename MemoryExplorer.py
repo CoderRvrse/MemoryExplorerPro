@@ -11,6 +11,7 @@ import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox, filedialog
 import ctypes
 from ctypes import *
+from ce_comparisons import CEComparisons
 import threading
 import json
 from datetime import datetime
@@ -1252,68 +1253,111 @@ class MemoryExplorer:
                     continue
                 
                 try:
-                    value_bytes = bytes([buffer[j] & 0xFF for j in range(value_size)])
+                    # Get new value bytes
+                    new_bytes = bytes([buffer[j] & 0xFF for j in range(value_size)])
                     
+                    # Convert old value to bytes for CE comparison
                     if scan_type == 'int32':
-                        new_value = struct.unpack('<i', value_bytes)[0]
-                        old_value_num = int(old_value) if isinstance(old_value, str) else old_value
+                        old_bytes = struct.pack('<i', int(old_value) if isinstance(old_value, str) else old_value)
                     elif scan_type == 'int64':
-                        new_value = struct.unpack('<q', value_bytes)[0]
-                        old_value_num = int(old_value) if isinstance(old_value, str) else old_value
+                        old_bytes = struct.pack('<q', int(old_value) if isinstance(old_value, str) else old_value)
                     elif scan_type == 'float':
-                        new_value = struct.unpack('<f', value_bytes)[0]
-                        old_value_num = float(old_value) if isinstance(old_value, str) else old_value
+                        old_bytes = struct.pack('<f', float(old_value) if isinstance(old_value, str) else old_value)
                     elif scan_type == 'double':
-                        new_value = struct.unpack('<d', value_bytes)[0]
-                        old_value_num = float(old_value) if isinstance(old_value, str) else old_value
+                        old_bytes = struct.pack('<d', float(old_value) if isinstance(old_value, str) else old_value)
                     else:
                         continue
-                    
+
                     matches = False
-                    
-                    if condition == 'exact_value':
-                        compare_val = int(search_val) if scan_type in ['int32', 'int64'] else float(search_val)
-                        matches = (new_value == compare_val)
-                    
-                    elif condition == 'increased_value':
-                        matches = (new_value > old_value_num)
-                    
-                    elif condition == 'decreased_value':
-                        matches = (new_value < old_value_num)
-                    
-                    elif condition == 'changed_value':
-                        matches = (new_value != old_value_num)
+
+                    # USE CHEAT ENGINE'S EXACT COMPARISON LOGIC
+                    if condition == 'changed_value':
+                        if scan_type == 'int32':
+                            matches = CEComparisons.int32_changed(new_bytes, old_bytes)
+                        elif scan_type == 'int64':
+                            matches = CEComparisons.int64_changed(new_bytes, old_bytes)
+                        elif scan_type == 'float':
+                            matches = CEComparisons.float_changed(new_bytes, old_bytes)
+                        elif scan_type == 'double':
+                            matches = CEComparisons.double_changed(new_bytes, old_bytes)
                     
                     elif condition == 'unchanged_value':
-                        matches = (new_value == old_value_num)
+                        if scan_type == 'int32':
+                            matches = CEComparisons.int32_unchanged(new_bytes, old_bytes)
+                        elif scan_type == 'int64':
+                            matches = CEComparisons.int64_unchanged(new_bytes, old_bytes)
+                        elif scan_type == 'float':
+                            matches = CEComparisons.float_unchanged(new_bytes, old_bytes)
+                        elif scan_type == 'double':
+                            matches = CEComparisons.double_unchanged(new_bytes, old_bytes)
+                    
+                    elif condition == 'increased_value':
+                        if scan_type == 'int32':
+                            matches = CEComparisons.int32_increased(new_bytes, old_bytes)
+                        elif scan_type == 'int64':
+                            matches = CEComparisons.int64_increased(new_bytes, old_bytes)
+                        elif scan_type == 'float':
+                            matches = CEComparisons.float_increased(new_bytes, old_bytes)
+                        elif scan_type == 'double':
+                            matches = CEComparisons.double_increased(new_bytes, old_bytes)
+                    
+                    elif condition == 'decreased_value':
+                        if scan_type == 'int32':
+                            matches = CEComparisons.int32_decreased(new_bytes, old_bytes)
+                        elif scan_type == 'int64':
+                            matches = CEComparisons.int64_decreased(new_bytes, old_bytes)
+                        elif scan_type == 'float':
+                            matches = CEComparisons.float_decreased(new_bytes, old_bytes)
+                        elif scan_type == 'double':
+                            matches = CEComparisons.double_decreased(new_bytes, old_bytes)
+                    
+                    elif condition == 'increased_by':
+                        amount = int(search_val) if scan_type in ['int32', 'int64'] else float(search_val)
+                        if scan_type == 'int32':
+                            matches = CEComparisons.int32_increased_by(new_bytes, old_bytes, amount)
+                        elif scan_type == 'int64':
+                            matches = CEComparisons.int64_increased_by(new_bytes, old_bytes, amount)
+                        elif scan_type == 'float':
+                            matches = CEComparisons.float_increased_by(new_bytes, old_bytes, amount)
+                        elif scan_type == 'double':
+                            matches = CEComparisons.double_increased_by(new_bytes, old_bytes, amount)
+                    
+                    elif condition == 'decreased_by':
+                        amount = int(search_val) if scan_type in ['int32', 'int64'] else float(search_val)
+                        if scan_type == 'int32':
+                            matches = CEComparisons.int32_decreased_by(new_bytes, old_bytes, amount)
+                        elif scan_type == 'int64':
+                            matches = CEComparisons.int64_decreased_by(new_bytes, old_bytes, amount)
+                        elif scan_type == 'float':
+                            matches = CEComparisons.float_decreased_by(new_bytes, old_bytes, amount)
+                        elif scan_type == 'double':
+                            matches = CEComparisons.double_decreased_by(new_bytes, old_bytes, amount)
                     
                     elif condition == 'bigger_than':
+                        new_value = struct.unpack('<i' if scan_type == 'int32' else '<q' if scan_type == 'int64' else '<f' if scan_type == 'float' else '<d', new_bytes)[0]
                         compare_val = int(search_val) if scan_type in ['int32', 'int64'] else float(search_val)
                         matches = (new_value > compare_val)
                     
                     elif condition == 'smaller_than':
+                        new_value = struct.unpack('<i' if scan_type == 'int32' else '<q' if scan_type == 'int64' else '<f' if scan_type == 'float' else '<d', new_bytes)[0]
                         compare_val = int(search_val) if scan_type in ['int32', 'int64'] else float(search_val)
                         matches = (new_value < compare_val)
                     
+                    elif condition == 'exact_value':
+                        new_value = struct.unpack('<i' if scan_type == 'int32' else '<q' if scan_type == 'int64' else '<f' if scan_type == 'float' else '<d', new_bytes)[0]
+                        compare_val = int(search_val) if scan_type in ['int32', 'int64'] else float(search_val)
+                        matches = (new_value == compare_val)
+                    
                     elif condition == 'value_between':
+                        new_value = struct.unpack('<i' if scan_type == 'int32' else '<q' if scan_type == 'int64' else '<f' if scan_type == 'float' else '<d', new_bytes)[0]
                         val1 = int(search_val) if scan_type in ['int32', 'int64'] else float(search_val)
                         val2 = int(search_val2) if scan_type in ['int32', 'int64'] else float(search_val2)
                         matches = (val1 <= new_value <= val2)
                     
-                    elif condition == 'increased_by':
-                        target_increase = int(search_val) if scan_type in ['int32', 'int64'] else float(search_val)
-                        actual_increase = new_value - old_value_num
-                        matches = (abs(actual_increase - target_increase) < 0.001)
-                    
-                    elif condition == 'decreased_by':
-                        target_decrease = int(search_val) if scan_type in ['int32', 'int64'] else float(search_val)
-                        actual_decrease = old_value_num - new_value
-                        matches = (abs(actual_decrease - target_decrease) < 0.001)
-                    
                     if matches:
-                        new_results.append((addr, new_value, scan_type))
-                
-                except Exception as e:
+                        # Store new value for display
+                        new_value = struct.unpack('<i' if scan_type == 'int32' else '<q' if scan_type == 'int64' else '<f' if scan_type == 'float' else '<d', new_bytes)[0]
+                        new_results.append((addr, new_value, scan_type))                except Exception as e:
                     pass
                 
                 if i % 1000 == 0:
