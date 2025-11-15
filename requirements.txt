@@ -1,0 +1,11 @@
+# Memory Explorer Pro - Python Dependencies
+# Install with: pip install -r requirements.txt
+
+# Core dependencies
+psutil>=5.9.0        # Process enumeration and system info
+
+# Optional dependencies (recommended)
+# Note: StealthEngine.dll handles memory operations via kernel driver
+# These are fallbacks if kernel driver unavailable:
+# pymem>=1.9.0       # Userspace memory operations (fallback)
+# keyboard>=0.13.5   # Hotkey support (if needed for scripts)

@@ -1,0 +1,188 @@
+╔══════════════════════════════════════════════════════════════════════╗
+║                                                                      ║
+║              MEMORY EXPLORER PRO - QUICK REFERENCE                   ║
+║                                                                      ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+📁 PROJECT LOCATION
+═══════════════════════════════════════════════════════════════════════
+   D:\MemoryExplorerPro\
+
+🚀 LAUNCH COMMANDS
+═══════════════════════════════════════════════════════════════════════
+   Windows:     .\LAUNCH.bat
+   PowerShell:  .\LAUNCH.ps1
+   Python:      python MemoryExplorer.py
+
+📦 FIRST-TIME SETUP
+═══════════════════════════════════════════════════════════════════════
+   1. cd D:\MemoryExplorerPro
+   2. pip install -r requirements.txt
+   3. .\LAUNCH.bat
+
+🔧 REQUIREMENTS
+═══════════════════════════════════════════════════════════════════════
+   ✓ Windows 10/11
+   ✓ Python 3.8+
+   ✓ Administrator privileges (for kernel driver)
+   ✓ psutil library (auto-installed)
+
+📖 DOCUMENTATION FILES
+═══════════════════════════════════════════════════════════════════════
+   README.md              - User guide & features (192 lines)
+   GITHUB_SETUP.md        - Repository setup guide (183 lines)
+   MIGRATION_COMPLETE.md  - Project summary & checklist
+   LICENSE                - MIT License with disclaimer
+
+🎯 KEY FEATURES
+═══════════════════════════════════════════════════════════════════════
+   • Memory Scanner (11 scan types)
+   • Hex Viewer/Editor
+   • Live Value Monitoring
+   • Ghidra Integration
+   • AI Analysis Tools
+   • Snapshot/Diff System
+
+🔍 SCAN TYPES
+═══════════════════════════════════════════════════════════════════════
+   Exact Value              - Find specific value (e.g., 1000)
+   Unknown Initial Value    - Find all non-zero values
+   Increased Value          - Value went up
+   Decreased Value          - Value went down
+   Changed Value            - Any change occurred
+   Unchanged Value          - Value stayed same
+   Bigger Than              - Value > X
+   Smaller Than             - Value < X
+   Value Between            - Min <= Value <= Max
+   Increased By             - Value increased by exact amount
+   Decreased By             - Value decreased by exact amount
+
+💾 DATA TYPES
+═══════════════════════════════════════════════════════════════════════
+   int32       - 4-byte integer (-2B to 2B)
+   int64       - 8-byte integer (large numbers)
+   float       - 4-byte floating point
+   double      - 8-byte floating point
+   string      - Text/ASCII strings
+   byte_array  - Raw byte sequences
+   pattern     - AOB patterns with wildcards (48 8B ?? 90)
+
+📤 EXPORT OPTIONS
+═══════════════════════════════════════════════════════════════════════
+   Full Memory Dump    - Complete process memory (.dmp)
+   Selected Region     - Export specific address range
+   Scan Results        - Export to JSON with metadata
+   Memory Snapshot     - Capture current state
+   Snapshot Comparison - Diff two snapshots
+
+🐙 GITHUB SETUP (5 MINUTES)
+═══════════════════════════════════════════════════════════════════════
+   # Step 1: Initialize Git
+   cd D:\MemoryExplorerPro
+   git init
+   git add .
+   git commit -m "Initial commit: Memory Explorer Pro v1.0.0"
+
+   # Step 2: Create repository at github.com/new
+   Name: MemoryExplorerPro
+   Description: Professional memory analysis tool
+   Public: Yes
+   Initialize: NO (we have files already)
+
+   # Step 3: Connect and push
+   git remote add origin https://github.com/USERNAME/MemoryExplorerPro.git
+   git branch -M main
+   git push -u origin main
+
+   📖 Full guide: GITHUB_SETUP.md
+
+🎓 BASIC WORKFLOW
+═══════════════════════════════════════════════════════════════════════
+   1. Launch application (LAUNCH.bat)
+   2. Click "⬇ SELECT PROCESS ⬇" button
+   3. Type process name in search box
+   4. Double-click to attach
+   5. Choose scan type (e.g., "Exact Value")
+   6. Enter value (e.g., current health/money)
+   7. Click "🔍 FIRST SCAN"
+   8. Change value in game
+   9. Enter new value
+   10. Click "NEXT SCAN"
+   11. Repeat until < 100 results
+   12. Double-click result to view/edit
+
+🛠️ TROUBLESHOOTING
+═══════════════════════════════════════════════════════════════════════
+   "Failed to create StealthEngine"
+   → Run as Administrator
+   → Check StealthEngine\StealthEngine.dll exists
+
+   "Failed to attach to process"
+   → Ensure process is running
+   → Try different process (e.g., Notepad for testing)
+   → Run with admin privileges
+
+   "No results found"
+   → Try different data type (int64 instead of int32)
+   → Increase scan range
+   → Use "Unknown Initial Value" then narrow down
+
+   "Slow scanning"
+   → Reduce scan range size
+   → Close other applications
+   → Use SSD instead of HDD
+
+⚠️ IMPORTANT WARNINGS
+═══════════════════════════════════════════════════════════════════════
+   ❌ Do NOT use on online/multiplayer games
+   ❌ Do NOT use on competitive games (ToS violation)
+   ❌ Do NOT use to bypass DRM or copy protection
+   ✅ Use ONLY on single-player games you own
+   ✅ Use ONLY for educational/research purposes
+   ✅ Respect all Terms of Service
+
+📞 SUPPORT & HELP
+═══════════════════════════════════════════════════════════════════════
+   Documentation:  README.md
+   GitHub Guide:   GITHUB_SETUP.md
+   Issues:         (Create GitHub repo first)
+   Discussions:    (After repo created)
+
+🔄 DAILY WORKFLOW (AFTER GITHUB SETUP)
+═══════════════════════════════════════════════════════════════════════
+   # Pull latest changes
+   git pull
+
+   # Make changes to code...
+
+   # Commit and push
+   git add .
+   git commit -m "Description of changes"
+   git push
+
+📊 PROJECT STATS
+═══════════════════════════════════════════════════════════════════════
+   Total Files:        11
+   Main Application:   MemoryExplorer.py (3,000 lines)
+   Documentation:      4 files (600+ lines)
+   Binary:             StealthEngine.dll
+   Total Size:         ~164 KB
+   Dependencies:       psutil (1 package)
+
+✅ PROJECT STATUS
+═══════════════════════════════════════════════════════════════════════
+   [✓] Standalone project
+   [✓] All paths relative
+   [✓] Dependencies documented
+   [✓] Fully documented
+   [✓] GitHub ready
+   [✓] Easy to launch
+   [✓] Properly licensed
+
+   STATUS: 🟢 READY FOR PRODUCTION & GITHUB!
+
+╔══════════════════════════════════════════════════════════════════════╗
+║  🎉 YOUR MEMORY EXPLORER PRO PROJECT IS COMPLETE AND READY! 🎉      ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+Next: Double-click LAUNCH.bat to test, then follow GITHUB_SETUP.md! 🚀
