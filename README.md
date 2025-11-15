@@ -2,9 +2,12 @@
 
 Professional memory analysis and reverse engineering tool with kernel-level access via StealthEngine.
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![Version](https://img.shields.io/badge/version-2.0.0-blue)
 ![Python](https://img.shields.io/badge/python-3.8+-green)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
+![License](https://img.shields.io/badge/license-MIT-brightgreen)
+![Status](https://img.shields.io/badge/status-active-success)
+![Game Support](https://img.shields.io/badge/games-Unity%20%7C%20Unreal%20%7C%20Native-orange)
 
 ## 🎯 Features
 

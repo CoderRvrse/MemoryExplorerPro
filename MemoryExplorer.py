@@ -1,7 +1,11 @@
 """
-Memory Explorer - Professional Memory Analysis Tool
+Memory Explorer Pro - Professional Memory Analysis Tool
 Fully integrated with StealthEngine for kernel-level access
 """
+
+__version__ = "2.0.0"
+__author__ = "CoderRvrse"
+__description__ = "Professional memory analysis and reverse engineering tool"
 
 import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox, filedialog
