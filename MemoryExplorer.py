@@ -1357,7 +1357,9 @@ class MemoryExplorer:
                     if matches:
                         # Store new value for display
                         new_value = struct.unpack('<i' if scan_type == 'int32' else '<q' if scan_type == 'int64' else '<f' if scan_type == 'float' else '<d', new_bytes)[0]
-                        new_results.append((addr, new_value, scan_type))                except Exception as e:
+                        new_results.append((addr, new_value, scan_type))
+                        
+                except Exception as e:
                     pass
                 
                 if i % 1000 == 0:
